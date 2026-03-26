@@ -1,0 +1,2 @@
+# SmoothMining
+crypto mining proj
