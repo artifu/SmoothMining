@@ -4,9 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
-RUN_DIR="${ROOT_DIR}/tmp"
 LOG_DIR="${ROOT_DIR}/logs"
-PID_FILE="${RUN_DIR}/xmrig.pid"
 
 if [[ ! -f "${ENV_FILE}" ]]; then
   echo "Missing .env file. Copy .env.example to .env and fill in your wallet address first."
@@ -17,7 +15,7 @@ set -a
 source "${ENV_FILE}"
 set +a
 
-mkdir -p "${RUN_DIR}" "${LOG_DIR}"
+mkdir -p "${LOG_DIR}"
 
 : "${WALLET_ADDRESS:?WALLET_ADDRESS is required}"
 : "${POOL_URL:?POOL_URL is required}"
@@ -40,15 +38,6 @@ if ! command -v "${XMRIG_BINARY}" >/dev/null 2>&1; then
   echo "XMRig binary not found: ${XMRIG_BINARY}"
   echo "Install it first, or set XMRIG_BINARY to the correct path in .env."
   exit 1
-fi
-
-if [[ -f "${PID_FILE}" ]]; then
-  existing_pid="$(cat "${PID_FILE}")"
-  if kill -0 "${existing_pid}" >/dev/null 2>&1; then
-    echo "xmrig is already running with PID ${existing_pid}."
-    exit 0
-  fi
-  rm -f "${PID_FILE}"
 fi
 
 XMRIG_CMD=(

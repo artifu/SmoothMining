@@ -100,6 +100,24 @@
       }
       .card {
         padding: 20px;
+        position: relative;
+        overflow: hidden;
+      }
+      .card::after {
+        content: "";
+        position: absolute;
+        inset: auto 0 0 0;
+        height: 6px;
+        background: rgba(216, 205, 187, 0.5);
+      }
+      .card.state-good::after { background: linear-gradient(90deg, rgba(31, 122, 82, 0.9), rgba(31, 122, 82, 0.25)); }
+      .card.state-warn::after { background: linear-gradient(90deg, rgba(148, 98, 0, 0.9), rgba(148, 98, 0, 0.25)); }
+      .card.state-bad::after { background: linear-gradient(90deg, rgba(154, 47, 47, 0.95), rgba(154, 47, 47, 0.25)); }
+      .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
       }
       .label {
         margin: 0 0 10px;
@@ -117,6 +135,27 @@
         color: var(--muted);
         font-size: 0.92rem;
       }
+      .micro-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+      .micro-pill::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .micro-pill.good { color: var(--good); background: rgba(31, 122, 82, 0.10); }
+      .micro-pill.warn { color: var(--warn); background: rgba(148, 98, 0, 0.12); }
+      .micro-pill.bad { color: var(--bad); background: rgba(154, 47, 47, 0.12); }
       .layout {
         display: grid;
         grid-template-columns: 1.3fr 0.9fr;
@@ -191,23 +230,35 @@
       </section>
 
       <section class="grid">
-        <article class="panel card">
-          <p class="label">Hashrate 60s</p>
+        <article id="hashrateCard" class="panel card">
+          <div class="card-top">
+            <p class="label">Hashrate 60s</p>
+            <div id="hashrateState" class="micro-pill warn">Warming up</div>
+          </div>
           <p id="hashrate60" class="value">0.00 H/s</p>
           <div id="hashrateSub" class="subvalue">10s: 0.00 H/s · 15m: 0.00 H/s</div>
         </article>
-        <article class="panel card">
-          <p class="label">XMR Revenue / Day</p>
+        <article id="revenueCard" class="panel card">
+          <div class="card-top">
+            <p class="label">XMR Revenue / Day</p>
+            <div id="revenueState" class="micro-pill warn">Tiny yield</div>
+          </div>
           <p id="xmrDay" class="value">0.000000</p>
           <div id="usdDay" class="subvalue">$0.00 per day estimated</div>
         </article>
-        <article class="panel card">
-          <p class="label">Electric Cost / Day</p>
+        <article id="powerCard" class="panel card">
+          <div class="card-top">
+            <p class="label">Electric Cost / Day</p>
+            <div id="powerState" class="micro-pill good">Low draw</div>
+          </div>
           <p id="powerCost" class="value">$0.00</p>
           <div id="powerAssumption" class="subvalue">0 W @ $0.00/kWh</div>
         </article>
-        <article class="panel card">
-          <p class="label">Net / Day</p>
+        <article id="netCard" class="panel card">
+          <div class="card-top">
+            <p class="label">Net / Day</p>
+            <div id="netState" class="micro-pill bad">Negative</div>
+          </div>
           <p id="netDay" class="value">$0.00</p>
           <div class="subvalue">Revenue minus estimated electricity cost</div>
         </article>
@@ -225,11 +276,13 @@
           <h2>Current Snapshot</h2>
           <table>
             <tbody>
+              <tr><td>Health state</td><td id="healthState">n/a</td></tr>
               <tr><td>Process CPU</td><td id="processCpu">n/a</td></tr>
               <tr><td>Process RSS</td><td id="processRss">n/a</td></tr>
               <tr><td>System memory used</td><td id="systemMem">n/a</td></tr>
               <tr><td>Load average 1m</td><td id="load1">n/a</td></tr>
               <tr><td>Load average 5m</td><td id="load5">n/a</td></tr>
+              <tr><td>Monitor status</td><td id="monitorStatus">n/a</td></tr>
               <tr><td>Pool / connection</td><td id="poolInfo">n/a</td></tr>
               <tr><td>Worker health</td><td id="workerHealth">n/a</td></tr>
               <tr><td>XMR price assumption</td><td id="xmrPrice">n/a</td></tr>
@@ -261,6 +314,38 @@
 
       function setText(id, value) {
         document.getElementById(id).textContent = value;
+      }
+
+      function setPill(id, label, tone) {
+        const element = document.getElementById(id);
+        element.textContent = label;
+        element.className = `micro-pill ${tone}`;
+      }
+
+      function setCardState(id, tone) {
+        const element = document.getElementById(id);
+        element.classList.remove("state-good", "state-warn", "state-bad");
+        element.classList.add(`state-${tone}`);
+      }
+
+      function classifyMetric(value, warningThreshold, badThreshold, invert = false) {
+        const numeric = Number(value || 0);
+        if (invert) {
+          if (numeric <= badThreshold) return "bad";
+          if (numeric <= warningThreshold) return "warn";
+          return "good";
+        }
+        if (numeric >= badThreshold) return "bad";
+        if (numeric >= warningThreshold) return "warn";
+        return "good";
+      }
+
+      function monitorValue(latestRow, key, formatter, fallback = "Awaiting monitor sample") {
+        if (!latestRow) {
+          return fallback;
+        }
+
+        return formatter(latestRow[key]);
       }
 
       function drawChart(rows) {
@@ -351,13 +436,38 @@
         setText("powerAssumption", `${fmt2.format(economics.assumptions?.powerWatts || 0)} W @ ${fmtCurrency.format(economics.assumptions?.electricityCostPerKwh || 0)}/kWh`);
         setText("netDay", fmtCurrency.format(economics.estimates?.netUsdPerDay || 0));
 
-        setText("processCpu", latestRow ? `${fmt2.format(Number(latestRow.process_cpu_percent || 0))}%` : "n/a");
-        setText("processRss", latestRow ? `${fmt2.format(Number(latestRow.process_rss_mb || 0))} MB` : "n/a");
-        setText("systemMem", latestRow ? `${fmt2.format(Number(latestRow.system_mem_used_percent || 0))}%` : "n/a");
-        setText("load1", latestRow ? fmt2.format(Number(latestRow.loadavg_1m || 0)) : "n/a");
-        setText("load5", latestRow ? fmt2.format(Number(latestRow.loadavg_5m || 0)) : "n/a");
+        const processCpuValue = Number(latestRow?.process_cpu_percent || 0);
+        const systemMemValue = Number(latestRow?.system_mem_used_percent || 0);
+        const netValue = Number(economics.estimates?.netUsdPerDay || 0);
+        const hashrate60Value = Number(hashrate.h60s || 0);
+        const powerCostValue = Number(economics.estimates?.powerCostUsdPerDay || 0);
+
+        const cpuState = latestRow ? classifyMetric(processCpuValue, 140, 260) : (status.connected ? "warn" : "bad");
+        const memState = latestRow ? classifyMetric(systemMemValue, 80, 90) : (status.connected ? "warn" : "bad");
+        const netState = classifyMetric(netValue, -0.02, -0.06, true);
+        const hashrateState = hashrate60Value > 0 ? "good" : (status.connected ? "warn" : "bad");
+        const powerState = classifyMetric(powerCostValue, 0.10, 0.20);
+        const overallState = [cpuState, memState].includes("bad") ? "hot" : [cpuState, memState].includes("warn") ? "warning" : "healthy";
+
+        setPill("hashrateState", hashrateState === "good" ? "Live" : hashrateState === "warn" ? "Warming up" : "Offline", hashrateState);
+        setPill("revenueState", hashrate60Value > 0 ? "Earning" : "Idle", hashrateState === "good" ? "good" : "warn");
+        setPill("powerState", powerState === "good" ? "Low draw" : powerState === "warn" ? "Moderate" : "Expensive", powerState);
+        setPill("netState", netState === "good" ? "Positive" : netState === "warn" ? "Near break-even" : "Negative", netState);
+
+        setCardState("hashrateCard", hashrateState);
+        setCardState("revenueCard", hashrateState === "good" ? "good" : "warn");
+        setCardState("powerCard", powerState);
+        setCardState("netCard", netState);
+
+        setText("processCpu", monitorValue(latestRow, "process_cpu_percent", (value) => `${fmt2.format(Number(value || 0))}%`));
+        setText("processRss", monitorValue(latestRow, "process_rss_mb", (value) => `${fmt2.format(Number(value || 0))} MB`));
+        setText("systemMem", monitorValue(latestRow, "system_mem_used_percent", (value) => `${fmt2.format(Number(value || 0))}%`));
+        setText("load1", monitorValue(latestRow, "loadavg_1m", (value) => fmt2.format(Number(value || 0))));
+        setText("load5", monitorValue(latestRow, "loadavg_5m", (value) => fmt2.format(Number(value || 0))));
+        setText("healthState", overallState === "healthy" ? "Healthy" : overallState === "warning" ? "Warning" : "Hot");
+        setText("monitorStatus", latestRow ? `Collecting every ~${rows.length > 1 ? "10-15s" : "few seconds"}` : (status.connected ? "Warming up" : "Monitor idle"));
         setText("poolInfo", status.summary?.connection?.pool || status.summary?.connection?.host || "n/a");
-        setText("workerHealth", status.connected ? "Running" : "Monitor only");
+        setText("workerHealth", status.connected ? (latestRow ? "Running + monitored" : "Running, monitor warming up") : "Disconnected");
         setText("xmrPrice", fmtCurrency.format(economics.assumptions?.xmrPriceUsd || 0));
         setText("networkHashrate", humanHashrate(economics.assumptions?.networkHashrateHps || 0));
 

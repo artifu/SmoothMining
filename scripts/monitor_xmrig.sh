@@ -4,8 +4,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="${ROOT_DIR}/logs"
+RUN_DIR="${ROOT_DIR}/tmp"
 INTERVAL="${1:-15}"
 OUTPUT_FILE="${2:-${LOG_DIR}/xmrig-monitor.csv}"
+PID_FILE="${RUN_DIR}/xmrig.pid"
 
 mkdir -p "${LOG_DIR}"
 
@@ -47,7 +49,19 @@ get_mem_used_percent() {
 }
 
 while true; do
-  pid="$(pgrep -x xmrig | head -n 1 || true)"
+  pid=""
+
+  if [[ -f "${PID_FILE}" ]]; then
+    pid="$(cat "${PID_FILE}")"
+    if ! kill -0 "${pid}" >/dev/null 2>&1; then
+      pid=""
+      rm -f "${PID_FILE}"
+    fi
+  fi
+
+  if [[ -z "${pid}" ]]; then
+    pid="$(pgrep -n -x xmrig || true)"
+  fi
 
   if [[ -z "${pid}" ]]; then
     echo "xmrig process not found. Exiting monitor."
@@ -78,4 +92,3 @@ while true; do
 
   sleep "${INTERVAL}"
 done
-

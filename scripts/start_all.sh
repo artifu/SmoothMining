@@ -33,4 +33,3 @@ bash scripts/start_dashboard.sh --background
 
 echo "All services started."
 echo "Dashboard: http://127.0.0.1:4173"
-

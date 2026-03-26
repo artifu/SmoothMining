@@ -91,7 +91,11 @@ The repository includes a local-only dashboard that combines:
 - estimated power cost assumptions
 - estimated Monero revenue assumptions
 
-Add screenshots under `media/dashboard/` and reference them here as the project evolves.
+Current screenshot:
+
+![SmoothMining local dashboard](media/dashboard/dashboard-live.jpeg)
+
+Add more screenshots under `media/dashboard/` as the project evolves.
 
 Suggested captures:
 
