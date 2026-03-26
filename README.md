@@ -2,11 +2,29 @@
 
 An educational low-impact Monero mining project focused on safe CPU limits, reproducible setup, and strong public documentation.
 
+## Highlights
+
+- Safe-first XMRig wrapper with conservative CPU defaults
+- Lightweight monitor for CPU, memory pressure, and runtime trends
+- Local dashboard for performance cost versus estimated mining revenue
+- Portfolio-friendly documentation focused on engineering tradeoffs
+
 ## Overview
 
 SmoothMining is a portfolio-oriented repository for experimenting with CPU mining on personal hardware in a controlled way. The project wraps a real miner workflow around XMRig while keeping the operational posture conservative: low thread counts, explicit CPU limits, local wallet ownership, and a clean setup that can be documented and benchmarked.
 
 The goal is to learn how mining software behaves on a normal machine, not to maximize profit. This repository is designed to show practical engineering judgment around system safety, automation, and observability.
+
+## Why This Project Stands Out
+
+Most crypto mining side projects focus on profitability claims. This one focuses on systems thinking:
+
+- How do you cap background resource usage safely?
+- How do you measure machine impact on constrained hardware?
+- How do you expose useful runtime data locally without overengineering the stack?
+- How do you present an experiment honestly when the economics are weak but the technical lessons are strong?
+
+That makes the project more credible for engineering portfolios, especially for roles involving backend systems, developer tooling, performance, automation, or observability.
 
 ## Goals
 
@@ -29,14 +47,20 @@ The goal is to learn how mining software behaves on a normal machine, not to max
 .
 ├── README.md
 ├── .env.example
+├── benchmarks/
+│   └── benchmark-template.csv
 ├── configs/
 │   └── xmrig.example.json
 ├── dashboard/
 │   ├── index.html
 │   └── server.js
 ├── docs/
+│   ├── project-history.md
 │   ├── setup-macos.md
+│   ├── screenshots.md
 │   └── wallet-setup.md
+├── media/
+│   └── dashboard/
 └── scripts/
     ├── start_all.sh
     ├── start_dashboard.sh
@@ -57,6 +81,23 @@ Why this is the best fit for this project:
 - You keep private material outside the repo and outside the miner configuration.
 
 This project only needs a public receive address. Never store your seed phrase, private keys, or exchange credentials in this repository.
+
+## Dashboard Preview
+
+The repository includes a local-only dashboard that combines:
+
+- XMRig local API data
+- lightweight monitor logs
+- estimated power cost assumptions
+- estimated Monero revenue assumptions
+
+Add screenshots under `media/dashboard/` and reference them here as the project evolves.
+
+Suggested captures:
+
+- main dashboard overview
+- low-impact run with `1 thread`
+- comparison after tuning threads or CPU limit
 
 ## Quick Start
 
@@ -129,6 +170,26 @@ Background logs:
 - `logs/monitor.log`
 - `logs/dashboard.log`
 
+## Benchmark Workflow
+
+Use this project as an experiment log, not just a miner wrapper.
+
+Recommended benchmark dimensions:
+
+- thread count
+- CPU limit
+- 10s, 60s, and 15m hashrate
+- process RSS
+- estimated system memory pressure
+- estimated daily revenue
+- estimated daily electricity cost
+- notes about responsiveness, fan noise, and thermal behavior
+
+Starter template:
+
+- `benchmarks/benchmark-template.csv`
+- `docs/screenshots.md`
+
 ## Safe Defaults
 
 The starter script is intentionally conservative:
@@ -151,13 +212,15 @@ The starter script is intentionally conservative:
 
 - Wallet setup: `docs/wallet-setup.md`
 - macOS setup: `docs/setup-macos.md`
+- Project history: `docs/project-history.md`
+- Screenshot checklist: `docs/screenshots.md`
 - Example XMRig config: `configs/xmrig.example.json`
 - Runtime monitor output: `logs/xmrig-monitor.csv`
 - Local dashboard: `dashboard/index.html`
 
-## Next Steps
+## Roadmap
 
-1. Add a metrics collection script for CPU load, temperature, and runtime logs.
-2. Add benchmark result templates under `benchmarks/`.
-3. Generate charts comparing hashrate, CPU limit, and thermal behavior.
-4. Publish findings and lessons learned in the repository.
+1. Add a temperature collection path for macOS when available with low overhead.
+2. Record benchmark sessions across multiple CPU and thread configurations.
+3. Generate charts comparing hashrate, memory pressure, and estimated net return.
+4. Publish a concise write-up of findings and engineering tradeoffs.
