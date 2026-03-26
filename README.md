@@ -103,6 +103,22 @@ Suggested captures:
 - low-impact run with `1 thread`
 - comparison after tuning threads or CPU limit
 
+## Early Results
+
+These early runs reinforce the core premise of the project:
+
+- The local dashboard and monitor make runtime impact easy to inspect at a glance.
+- Conservative settings keep the machine usable and help avoid thermal spikes.
+- Consumer-hardware mining remains economically weak even when the technical workflow is solid.
+
+Example observations from the current setup:
+
+- low-impact startup and shutdown now work through one-command scripts
+- the dashboard can visualize CPU pressure, RSS, memory pressure, and estimated net return
+- estimated profitability is negative on a typical consumer Mac, which is exactly the kind of honest outcome this project is meant to document
+
+That outcome is a feature, not a failure. The engineering value here is in safe process control, observability, reproducibility, and candid reporting.
+
 ## Quick Start
 
 1. Install dependencies on macOS:
@@ -168,6 +184,12 @@ Stop everything cleanly:
 bash scripts/stop_all.sh
 ```
 
+Emergency stop:
+
+```bash
+bash scripts/kill_mining_now.sh
+```
+
 Background logs:
 
 - `logs/xmrig.log`
@@ -221,6 +243,10 @@ The starter script is intentionally conservative:
 - Example XMRig config: `configs/xmrig.example.json`
 - Runtime monitor output: `logs/xmrig-monitor.csv`
 - Local dashboard: `dashboard/index.html`
+
+## License
+
+This project is released under the MIT License. See `LICENSE`.
 
 ## Roadmap
 
