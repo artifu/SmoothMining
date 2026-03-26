@@ -1,0 +1,18 @@
+{
+  "autosave": true,
+  "cpu": true,
+  "opencl": false,
+  "cuda": false,
+  "pools": [
+    {
+      "algo": null,
+      "coin": "monero",
+      "url": "pool.supportxmr.com:3333",
+      "user": "YOUR_MONERO_SUBADDRESS_HERE",
+      "pass": "smoothmining-mac",
+      "keepalive": true,
+      "tls": false
+    }
+  ]
+}
+

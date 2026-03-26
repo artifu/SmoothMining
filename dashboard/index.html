@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SmoothMining Dashboard</title>
+    <style>
+      :root {
+        --bg: #f4efe5;
+        --panel: rgba(255, 252, 246, 0.84);
+        --line: #d8cdbb;
+        --text: #1f2328;
+        --muted: #6c6257;
+        --accent: #c55c2b;
+        --accent-soft: #f0ccb7;
+        --good: #1f7a52;
+        --warn: #946200;
+        --bad: #9a2f2f;
+        --shadow: 0 18px 45px rgba(69, 42, 24, 0.12);
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "SF Pro Display", "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(197, 92, 43, 0.18), transparent 32%),
+          radial-gradient(circle at top right, rgba(31, 122, 82, 0.12), transparent 28%),
+          linear-gradient(180deg, #fbf7f1 0%, var(--bg) 100%);
+      }
+      .shell {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 32px 20px 48px;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid rgba(216, 205, 187, 0.9);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
+      }
+      .hero-main {
+        padding: 28px;
+      }
+      .eyebrow {
+        margin: 0 0 8px;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-weight: 700;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(2.2rem, 4vw, 4rem);
+        line-height: 0.95;
+      }
+      .subtitle {
+        margin: 14px 0 0;
+        max-width: 58ch;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .hero-side {
+        padding: 24px;
+        display: grid;
+        gap: 12px;
+      }
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        font-weight: 700;
+        width: fit-content;
+      }
+      .status-pill::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .connected { color: var(--good); background: rgba(31, 122, 82, 0.1); }
+      .disconnected { color: var(--bad); background: rgba(154, 47, 47, 0.1); }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      .card {
+        padding: 20px;
+      }
+      .label {
+        margin: 0 0 10px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .value {
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1;
+        margin: 0;
+      }
+      .subvalue {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 1.3fr 0.9fr;
+        gap: 18px;
+      }
+      .chart-panel, .table-panel {
+        padding: 22px;
+      }
+      h2 {
+        margin: 0 0 14px;
+        font-size: 1.1rem;
+      }
+      canvas {
+        width: 100%;
+        height: 260px;
+        display: block;
+        background: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.12));
+        border-radius: 18px;
+        border: 1px solid rgba(216, 205, 187, 0.8);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.95rem;
+      }
+      td {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      td:last-child {
+        text-align: right;
+        font-weight: 700;
+      }
+      .notes {
+        margin-top: 16px;
+        color: var(--muted);
+        line-height: 1.45;
+        font-size: 0.92rem;
+      }
+      @media (max-width: 960px) {
+        .hero, .layout, .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <section class="hero">
+        <div class="panel hero-main">
+          <p class="eyebrow">SmoothMining Local Dashboard</p>
+          <h1>Performance cost versus mining return.</h1>
+          <p class="subtitle">
+            A local-only dashboard for tracking XMRig runtime pressure on your Mac and comparing estimated mining revenue against estimated electricity cost.
+          </p>
+        </div>
+        <aside class="panel hero-side">
+          <div id="connectionState" class="status-pill disconnected">Waiting for miner</div>
+          <div>
+            <div class="label">Data sources</div>
+            <div class="subvalue">XMRig local API + monitor CSV logs</div>
+          </div>
+          <div>
+            <div class="label">Refresh</div>
+            <div class="subvalue">Every 10 seconds</div>
+          </div>
+          <div>
+            <div class="label">Last update</div>
+            <div id="lastUpdate" class="subvalue">Not yet loaded</div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="grid">
+        <article class="panel card">
+          <p class="label">Hashrate 60s</p>
+          <p id="hashrate60" class="value">0.00 H/s</p>
+          <div id="hashrateSub" class="subvalue">10s: 0.00 H/s · 15m: 0.00 H/s</div>
+        </article>
+        <article class="panel card">
+          <p class="label">XMR Revenue / Day</p>
+          <p id="xmrDay" class="value">0.000000</p>
+          <div id="usdDay" class="subvalue">$0.00 per day estimated</div>
+        </article>
+        <article class="panel card">
+          <p class="label">Electric Cost / Day</p>
+          <p id="powerCost" class="value">$0.00</p>
+          <div id="powerAssumption" class="subvalue">0 W @ $0.00/kWh</div>
+        </article>
+        <article class="panel card">
+          <p class="label">Net / Day</p>
+          <p id="netDay" class="value">$0.00</p>
+          <div class="subvalue">Revenue minus estimated electricity cost</div>
+        </article>
+      </section>
+
+      <section class="layout">
+        <article class="panel chart-panel">
+          <h2>Process Pressure Trend</h2>
+          <canvas id="trendChart" width="760" height="260"></canvas>
+          <p class="notes">
+            The chart uses the lightweight monitor log and shows recent XMRig CPU usage, process RSS, and system memory pressure. It is intentionally lightweight and local-only.
+          </p>
+        </article>
+        <aside class="panel table-panel">
+          <h2>Current Snapshot</h2>
+          <table>
+            <tbody>
+              <tr><td>Process CPU</td><td id="processCpu">n/a</td></tr>
+              <tr><td>Process RSS</td><td id="processRss">n/a</td></tr>
+              <tr><td>System memory used</td><td id="systemMem">n/a</td></tr>
+              <tr><td>Load average 1m</td><td id="load1">n/a</td></tr>
+              <tr><td>Load average 5m</td><td id="load5">n/a</td></tr>
+              <tr><td>Pool / connection</td><td id="poolInfo">n/a</td></tr>
+              <tr><td>Worker health</td><td id="workerHealth">n/a</td></tr>
+              <tr><td>XMR price assumption</td><td id="xmrPrice">n/a</td></tr>
+              <tr><td>Network hashrate assumption</td><td id="networkHashrate">n/a</td></tr>
+            </tbody>
+          </table>
+          <p class="notes">
+            Revenue numbers are estimates, not pool payouts. They depend on assumptions in your local <code>.env</code> and are best used for comparing configurations rather than forecasting real profit.
+          </p>
+        </aside>
+      </section>
+    </div>
+
+    <script>
+      const fmt2 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+      const fmt6 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 6, minimumFractionDigits: 6 });
+      const fmtCurrency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 4 });
+
+      function humanHashrate(value) {
+        const units = ["H/s", "KH/s", "MH/s", "GH/s"];
+        let current = Number(value) || 0;
+        let unitIndex = 0;
+        while (current >= 1000 && unitIndex < units.length - 1) {
+          current /= 1000;
+          unitIndex += 1;
+        }
+        return `${fmt2.format(current)} ${units[unitIndex]}`;
+      }
+
+      function setText(id, value) {
+        document.getElementById(id).textContent = value;
+      }
+
+      function drawChart(rows) {
+        const canvas = document.getElementById("trendChart");
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (!rows.length) {
+          ctx.fillStyle = "#6c6257";
+          ctx.font = "16px sans-serif";
+          ctx.fillText("Run scripts/monitor_xmrig.sh to populate the trend chart.", 24, 44);
+          return;
+        }
+
+        const width = canvas.width;
+        const height = canvas.height;
+        const padding = 32;
+        const plotWidth = width - padding * 2;
+        const plotHeight = height - padding * 2;
+
+        const cpu = rows.map((row) => Number(row.process_cpu_percent || 0));
+        const rss = rows.map((row) => Number(row.process_rss_mb || 0));
+        const mem = rows.map((row) => Number(row.system_mem_used_percent || 0));
+        const maxValue = Math.max(100, ...cpu, ...rss, ...mem);
+
+        ctx.strokeStyle = "rgba(108, 98, 87, 0.2)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 4; i += 1) {
+          const y = padding + (plotHeight / 3) * i;
+          ctx.beginPath();
+          ctx.moveTo(padding, y);
+          ctx.lineTo(width - padding, y);
+          ctx.stroke();
+        }
+
+        const series = [
+          { data: cpu, color: "#c55c2b" },
+          { data: rss, color: "#1f7a52" },
+          { data: mem, color: "#946200" }
+        ];
+
+        for (const item of series) {
+          ctx.beginPath();
+          item.data.forEach((value, index) => {
+            const x = padding + (plotWidth * index) / Math.max(item.data.length - 1, 1);
+            const y = height - padding - (value / maxValue) * plotHeight;
+            if (index === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          });
+          ctx.strokeStyle = item.color;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = "#6c6257";
+        ctx.font = "12px sans-serif";
+        ctx.fillText("CPU %", padding, 18);
+        ctx.fillText("RSS MB", padding + 72, 18);
+        ctx.fillText("Mem %", padding + 152, 18);
+      }
+
+      async function refresh() {
+        const [statusRes, monitorRes] = await Promise.all([
+          fetch("/api/status"),
+          fetch("/api/monitor")
+        ]);
+
+        const status = await statusRes.json();
+        const monitor = await monitorRes.json();
+        const rows = monitor.rows || [];
+        const latestRow = rows[rows.length - 1] || null;
+        const hashrate = status.hashrate || {};
+        const economics = status.economics || { assumptions: {}, estimates: {} };
+
+        const state = document.getElementById("connectionState");
+        state.textContent = status.connected ? "Miner API connected" : "Miner API unavailable";
+        state.className = `status-pill ${status.connected ? "connected" : "disconnected"}`;
+
+        setText("lastUpdate", new Date(status.timestamp).toLocaleString());
+        setText("hashrate60", humanHashrate(hashrate.h60s || 0));
+        setText("hashrateSub", `10s: ${humanHashrate(hashrate.h10s || 0)} · 15m: ${humanHashrate(hashrate.h15m || 0)}`);
+        setText("xmrDay", fmt6.format(economics.estimates?.xmrPerDay || 0));
+        setText("usdDay", `${fmtCurrency.format(economics.estimates?.revenueUsdPerDay || 0)} per day estimated`);
+        setText("powerCost", fmtCurrency.format(economics.estimates?.powerCostUsdPerDay || 0));
+        setText("powerAssumption", `${fmt2.format(economics.assumptions?.powerWatts || 0)} W @ ${fmtCurrency.format(economics.assumptions?.electricityCostPerKwh || 0)}/kWh`);
+        setText("netDay", fmtCurrency.format(economics.estimates?.netUsdPerDay || 0));
+
+        setText("processCpu", latestRow ? `${fmt2.format(Number(latestRow.process_cpu_percent || 0))}%` : "n/a");
+        setText("processRss", latestRow ? `${fmt2.format(Number(latestRow.process_rss_mb || 0))} MB` : "n/a");
+        setText("systemMem", latestRow ? `${fmt2.format(Number(latestRow.system_mem_used_percent || 0))}%` : "n/a");
+        setText("load1", latestRow ? fmt2.format(Number(latestRow.loadavg_1m || 0)) : "n/a");
+        setText("load5", latestRow ? fmt2.format(Number(latestRow.loadavg_5m || 0)) : "n/a");
+        setText("poolInfo", status.summary?.connection?.pool || status.summary?.connection?.host || "n/a");
+        setText("workerHealth", status.connected ? "Running" : "Monitor only");
+        setText("xmrPrice", fmtCurrency.format(economics.assumptions?.xmrPriceUsd || 0));
+        setText("networkHashrate", humanHashrate(economics.assumptions?.networkHashrateHps || 0));
+
+        drawChart(rows);
+      }
+
+      refresh().catch(console.error);
+      setInterval(() => refresh().catch(console.error), 10000);
+    </script>
+  </body>
+</html>
